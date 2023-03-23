@@ -1,25 +1,48 @@
+# Compiler and linker options
 CC = gcc
-CFLAGS = -Wall -Wextra -Wpedantic -std=c11 -g
-LDFLAGS =
+CFLAGS = -Wall -Wextra -Werror -std=c99 -pedantic -O2
+LFLAGS = 
+
+# Directories
+INC_DIR = include
 SRC_DIR = src
-TEST_DIR = tests
-BUILD_DIR = build
+OBJ_DIR = obj
 BIN_DIR = bin
-SRCS = $(wildcard $(SRC_DIR)/*.c)
-OBJS = $(patsubst $(SRC_DIR)/%.c, $(BUILD_DIR)/%.o, $(SRCS))
-TEST_SRCS = $(wildcard $(TEST_DIR)/*.c)
-TEST_BINS = $(patsubst $(TEST_DIR)/%.c, $(BIN_DIR)/%, $(TEST_SRCS))
+TEST_DIR = tests
 
-all: geece
+# Targets
+TARGET = $(BIN_DIR)/geece
+TEST_TARGET = $(BIN_DIR)/test_gc
 
-$(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
-	$(CC) $(CFLAGS) -c -o $@ $<
+# Sources and objects
+SOURCES = $(wildcard $(SRC_DIR)/*.c)
+OBJECTS = $(SOURCES:$(SRC_DIR)/%.c=$(OBJ_DIR)/%.o)
+TEST_SOURCES = $(wildcard $(TEST_DIR)/*.c)
+TEST_OBJECTS = $(TEST_SOURCES:$(TEST_DIR)/%.c=$(OBJ_DIR)/%.o)
 
-$(BIN_DIR)/%: $(TEST_DIR)/%.c $(OBJS)
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $< $(OBJS)
+# Includes
+INCLUDES = -I$(INC_DIR)
 
-geece: $(OBJS) $(BIN_DIR)/test_heap $(BIN_DIR)/test_object $(BIN_DIR)/test_reference $(BIN_DIR)/test_garbage_collector $(BIN_DIR)/test_mark_and_sweep $(BIN_DIR)/test_reference_counting
-	$(CC) $(CFLAGS) $(LDFLAGS) -o geece $(OBJS)
+# Rules
+.PHONY: all clean test
+
+all: $(TARGET)
+
+$(TARGET): $(OBJECTS)
+	$(CC) $(LFLAGS) $^ -o $@
+
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
+	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
 
 clean:
-	rm -rf $(BUILD_DIR)/*.o $(BIN_DIR)/* geece
+	rm -f $(OBJECTS) $(TARGET) $(TEST_OBJECTS) $(TEST_TARGET)
+
+test: CFLAGS += -DUNIT_TESTING
+test: $(TEST_TARGET)
+	./$(TEST_TARGET)
+
+$(TEST_TARGET): $(OBJECTS) $(TEST_OBJECTS)
+	$(CC) $(LFLAGS) $^ -o $@
+
+$(OBJ_DIR)/%.o: $(TEST_DIR)/%.c
+	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
