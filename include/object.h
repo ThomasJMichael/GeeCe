@@ -1,8 +1,11 @@
 /*
  * object.h
  *
+ */
 #ifndef GEECE_OBJECT_H
 #define GEECE_OBJECT_H
+
+ #include "stdlib.h"
 
 /*
  * Object struct
