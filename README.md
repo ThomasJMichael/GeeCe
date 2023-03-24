@@ -19,10 +19,10 @@ To use GeeCe in your C program, include the gc.h header file in your source code
 ```C
 #include <stdio.h>
 #include <stdlib.h>
-#include "gc.h"
+#include "geece.h"
 
 int main(void) {
-    int *p = GC_malloc(sizeof(int));
+    int *p = gecee_malloc(sizeof(int));
     *p = 42;
 
     printf("The answer is %d\n", *p);
