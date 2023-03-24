@@ -15,7 +15,7 @@
  * a size to store the size of the object, a destructor function pointer to handle object cleanup,
  * and a flexible array member to store the object data.
  */
-typedef struct Object {
+typedef struct {
     size_t ref_count;                   // Number of references to the object
     size_t size;                        // Size of the object
     void (*destructor)(void *);         // Destructor function pointer to handle object cleanup
