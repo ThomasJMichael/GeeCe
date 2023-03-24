@@ -6,9 +6,9 @@
  * of a specified size. It includes functionality for creating, destroying, and retaining objects,
  * as well as getting the size and data stored within an object.
  */
+#include "object.h"
 
 #include <stdio.h>
-#include "object.h"
 #include <stdlib.h>
 
 /**
