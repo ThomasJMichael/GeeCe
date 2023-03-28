@@ -56,6 +56,10 @@ void retain_object(Object *object){
     object->ref_count++;
 }
 
+size_t get_refcount(Object *object){
+    return object->ref_count;
+}
+
 /**
  * @brief Gets the size of an Object's data field.
  * 
