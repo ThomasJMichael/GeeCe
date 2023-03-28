@@ -30,4 +30,7 @@ add_executable(GeeCe
         tests/test_heap.c
         tests/test_object.c
         tests/test_reference.c
-        tests/unity.c include/root_table.h src/root_table.c tests/test_root_table.c)
+        tests/unity.c
+        include/root_table.h
+        src/root_table.c
+        tests/test_root_table.c)

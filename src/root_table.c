@@ -22,8 +22,12 @@ unsigned int geece_hash(const char *key) {
 
 RootTable *init_root_table(RootTable *table, size_t initial_capacity) {
     if (table == NULL) {
-        fprintf(stderr, "Out of memory.");
-        return NULL;
+        // Dynamically allocate memory for the table
+        table = malloc(sizeof(RootTable));
+        if (table == NULL) {
+            fprintf(stderr, "Out of memory.");
+            return NULL;
+        }
     }
 
     table->bucket_count = initial_capacity;
@@ -32,11 +36,13 @@ RootTable *init_root_table(RootTable *table, size_t initial_capacity) {
     table->bucket_heads = calloc(initial_capacity, sizeof(Bucket*));
     if (table->bucket_heads == NULL) {
         fprintf(stderr, "Out of memory.");
+        free(table); // Free the dynamically allocated memory for the table
         return NULL;
     }
 
     return table;
 }
+
 
 
 bool add_to_root_table(RootTable *table, char *key, Object *object){
@@ -130,7 +136,6 @@ Object *get_from_root_table(RootTable *table, char *key){
             currentBucketHead = currentBucketHead ->next;
         }
     }
-    printf("Key '%s' not found in table.\n", key);
     return NULL;
 }
 
