@@ -31,8 +31,8 @@ size_t geece_size(Object *object){
     return object->size;
 }
 
-char *geece_data(Object *object){
-    return object->data;
+Object **geece_data(Object *object){
+    return object->referenced_ptrs;
 }
 
 size_t geece_total_memory(){

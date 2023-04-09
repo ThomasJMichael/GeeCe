@@ -180,7 +180,7 @@ bool destroy_root_table(RootTable *table){
 bool rehash_root_table(RootTable *table) {
     if (table == NULL) {
         fprintf(stderr, "Root table not initialized.");
-        return false;
+        return false
     }
 
     size_t new_capacity = table->bucket_count * 2;
@@ -227,73 +227,91 @@ bool rehash_root_table(RootTable *table) {
     return true;
 
 }
-bool add_referece(RootTable *table, Object *object, Object *referenced_object){
-    uintptr_t address_of_object = (uintptr_t)object;
-
-    char key[20];
-    sprintf(key, "%llu", address_of_object);
-    Object *existing_object = get_from_root_table(table, key);
-    if (existing_object == NULL){
-        fprintf(stderr, "Object not found in root table.");
-        return false;
-    }
-
-    if (existing_object->references == NULL){
-        ObjectNode *newNode = malloc(sizeof(ObjectNode));
-        if (newNode == NULL) {
-            fprintf(stderr, "Out of memory.");
-            return false;
-        }
-        newNode->object = referenced_object;
-        newNode->next = NULL;
-        return true;
-    } else {
-        ObjectNode *newNode = malloc(sizeof(ObjectNode));
-        if (newNode == NULL) {
-            fprintf(stderr, "Out of memory.");
-            return false;
-        }
-        ObjectNode *temp = existing_object->references->next;
-        newNode->object = referenced_object;
-        newNode->next = temp;
-        return true;
-    }
-}
-
-bool remove_reference(RootTable *table, Object *object, Object *reference){
+bool add_reference(RootTable *table, Object *object, Object *referenced_object) {
     if (table == NULL) {
         fprintf(stderr, "Root table not initialized.");
-        return NULL;
+        return false;
     }
-    uintptr_t address_of_object = (uintptr_t)object;
 
+    uintptr_t address_of_object = (uintptr_t)object;
     char key[20];
     sprintf(key, "%llu", address_of_object);
+
     Object *existing_object = get_from_root_table(table, key);
-    if (existing_object == NULL){
+    if (existing_object == NULL) {
         fprintf(stderr, "Object not found in root table.");
         return false;
     }
+
     ObjectNode *currentNode = existing_object->references;
     ObjectNode *previousNode = NULL;
-    if (currentNode == NULL){
+    while (currentNode != NULL) {
+        if (currentNode->object == referenced_object) {
+            return true; // Reference already exists
+        }
+        previousNode = currentNode;
+        currentNode = currentNode->next;
+    }
+
+    // Reference does not already exist
+    ObjectNode *newNode = malloc(sizeof(ObjectNode));
+    if (newNode == NULL) {
+        fprintf(stderr, "Out of memory.");
         return false;
     }
-    while (currentNode != NULL){
-        if (currentNode->object == object){
-            if (previousNode == NULL){
+    newNode->object = referenced_object;
+    newNode->next = NULL;
+
+    if (existing_object->references == NULL) {
+        existing_object->references = newNode;
+    } else {
+        previousNode->next = newNode;
+    }
+
+    existing_object->referenced_ptrs_count++;
+    referenced_object->ref_count++;
+    return true;
+}
+
+
+bool remove_reference(RootTable *table, Object *object, Object *reference) {
+    if (table == NULL) {
+        fprintf(stderr, "Root table not initialized.");
+        return false;
+    }
+
+    uintptr_t address_of_object = (uintptr_t)object;
+    char key[20];
+    sprintf(key, "%llu", address_of_object);
+
+    Object *existing_object = get_from_root_table(table, key);
+    if (existing_object == NULL) {
+        fprintf(stderr, "Object not found in root table.");
+        return false;
+    }
+
+    ObjectNode *currentNode = existing_object->references;
+    ObjectNode *previousNode = NULL;
+    while (currentNode != NULL) {
+        if (currentNode->object == reference) {
+            if (previousNode == NULL) {
                 existing_object->references = currentNode->next;
             } else {
                 previousNode->next = currentNode->next;
             }
             free(currentNode);
+
+            existing_object->referenced_ptrs_count--;
+            reference->ref_count--;
             return true;
         }
         previousNode = currentNode;
         currentNode = currentNode->next;
     }
-    return false;
+
+    return false; // Reference not found
 }
+
 
 ObjectNode *get_references(RootTable *table, Object *object) {
     if (table == NULL) {
@@ -354,6 +372,9 @@ bool remove_object(RootTable *table, Object *object){
         currentNode = tempNode;
     }
     existing_object->references = NULL;
+
+    clear_reference_ptrs(object);
+    object->referenced_ptrs_count = 0;
     return true;
 }
 

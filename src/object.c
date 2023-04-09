@@ -27,9 +27,12 @@ Object *new_object(size_t size, Destructor destructor){
         fprintf(stderr, "Error: Failed to allocate memory for object.\n");
         exit(EXIT_FAILURE);
     }
+    object->marked = false;
     object->ref_count++;
     object->size = sizeof(Object) * size;
     object->destructor = destructor;
+    object->referenced_ptrs = NULL;
+    object->referenced_ptrs_count = 0;
     return object;
 }
 
@@ -68,7 +71,7 @@ size_t get_refcount(Object *object){
  * @param object A pointer to the Object whose size is being requested.
  * @return The size of the Object's data field in bytes.
  */
-size_t get_size(Object *object){
+size_t object_get_size(Object *object){
     return object->size;
 }
 
@@ -80,6 +83,38 @@ size_t get_size(Object *object){
  * @param object A pointer to the Object whose data field is being requested.
  * @return A pointer to the Object's data field.
  */
-char *get_data(Object *object){
-    return object->data;
+Object **object_get_data(Object *object){
+    if (object == NULL){
+        return NULL;
+    }
+    return object->referenced_ptrs;
 }
+
+void clear_reference_ptrs(Object *object){
+    if (object == NULL){
+        return;
+    }
+    for (size_t i = 0; i < object->referenced_ptrs_count; ++i){
+        Object *currentReference = object->referenced_ptrs[i];
+        free(currentReference);
+    }
+    free(object->referenced_ptrs);
+    object->referenced_ptrs = NULL;
+    object->referenced_ptrs_count = 0;
+}
+
+size_t object_get_references(const RootTable *table, const Object *object, Object ***out_references) {
+    if (object == NULL) {
+        return 0;
+    }
+    if (out_references == NULL) {
+        return object->referenced_ptrs_count;
+    }
+    *out_references = object->referenced_ptrs;
+    return (object->referenced_ptrs != NULL) ? object->referenced_ptrs_count : 0;
+}
+
+int object_get_reference_count_ptrs(RootTable *table, Object *object){
+    return object->referenced_ptrs_count;
+}
+

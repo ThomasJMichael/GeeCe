@@ -46,7 +46,7 @@ size_t geece_size(Object *object);
  * @param object A pointer to the object to get the data of.
  * @return The data stored in the object.
  */
-char *geece_data(Object *object);
+Object **geece_data(Object *object);
 
 /**
  * Returns the total amount of memory allocated on the Geece heap.

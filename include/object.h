@@ -16,11 +16,13 @@
  * and a flexible array member to store the object data.
  */
 typedef struct Object{
+    bool marked;
     size_t ref_count;                   // Number of references to the object
     size_t size;                        // Size of the object
     void (*destructor)(void *);         // Destructor function pointer to handle object cleanup
-    ObjectNode *references;
-    char data[];                        // Flexible array member to store the object data
+    ObjectNode *references;             // A linked list of objects this object points to
+    Object **referenced_ptrs;           //Array of pointers to the objects that are point to this object
+    int referenced_ptrs_count;          //Count of objects point to this object.
 } Object;
 
 typedef void (*Destructor)(void *);
@@ -67,7 +69,7 @@ void retain_object(Object *object);
 size_t get_refcount(Object *object);
 
 /*
- * get_size - Returns the size of an Object
+ * object_get_size - Returns the size of an Object
  *
  * This function returns the size of an Object.
  *
@@ -75,10 +77,10 @@ size_t get_refcount(Object *object);
  *
  * Returns: The size of the Object
  */
-size_t get_size(Object *object);
+size_t object_get_size(Object *object);
 
 /*
- * get_data - Returns the data of an Object
+ * object_get_data - Returns the data of an Object
  *
  * This function returns a pointer to the data of an Object.
  *
@@ -86,7 +88,13 @@ size_t get_size(Object *object);
  *
  * Returns: A pointer to the data of the Object
  */
-char *get_data(Object *object);
+Object **object_get_data(Object *object);
+
+void clear_reference_ptrs(Object *object);
+
+size_t object_get_references(const RootTable *table,const Object *object, Object ***out_references);
+
+int object_get_reference_count_ptrs(RootTable *table, Object *object);
 
 #endif /* GEECE_OBJECT_H */
 
