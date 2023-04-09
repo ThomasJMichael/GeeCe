@@ -15,7 +15,6 @@ unsigned int geece_hash(const char *key) {
         hash ^= key[i];
         hash *= 16777619;
     }
-
     return hash;
 }
 
@@ -149,6 +148,15 @@ bool clear_root_table(RootTable *table) {
         while (currentBucket != NULL) {
             Bucket *tempBucket = currentBucket;
             currentBucket = currentBucket->next;
+
+            // Free the object nodes for this bucket
+            ObjectNode *currentNode = tempBucket->object->references;
+            while (currentNode != NULL) {
+                ObjectNode *tempNode = currentNode;
+                currentNode = currentNode->next;
+                free(tempNode);
+            }
+            free(tempBucket->key);
             free(tempBucket);
         }
         table->bucket_heads[i] = NULL;
@@ -156,6 +164,7 @@ bool clear_root_table(RootTable *table) {
     table->bucket_count = 0;
     return true;
 }
+
 
 bool destroy_root_table(RootTable *table){
     if (table == NULL) {
@@ -205,23 +214,187 @@ bool rehash_root_table(RootTable *table) {
         return false;
     }
 
-// Copy the contents of new_table.bucket_heads to the new memory block
+    // Copy the contents of new_table.bucket_heads to the new memory block
     memcpy(new_bucket_heads, new_table.bucket_heads, new_table.bucket_count * sizeof(Bucket*));
 
-// Free the memory used by the new table
+    // Free the memory used by the new table
     free(new_table.bucket_heads);
 
-// Update the table's bucket count and bucket_heads to those of the new table
+    // Update the table's bucket count and bucket_heads to those of the new table
     table->bucket_count = new_table.bucket_count;
     table->bucket_heads = new_bucket_heads;
 
     return true;
 
 }
+bool add_referece(RootTable *table, Object *object, Object *referenced_object){
+    uintptr_t address_of_object = (uintptr_t)object;
 
+    char key[20];
+    sprintf(key, "%llu", address_of_object);
+    Object *existing_object = get_from_root_table(table, key);
+    if (existing_object == NULL){
+        fprintf(stderr, "Object not found in root table.");
+        return false;
+    }
 
+    if (existing_object->references == NULL){
+        ObjectNode *newNode = malloc(sizeof(ObjectNode));
+        if (newNode == NULL) {
+            fprintf(stderr, "Out of memory.");
+            return false;
+        }
+        newNode->object = referenced_object;
+        newNode->next = NULL;
+        return true;
+    } else {
+        ObjectNode *newNode = malloc(sizeof(ObjectNode));
+        if (newNode == NULL) {
+            fprintf(stderr, "Out of memory.");
+            return false;
+        }
+        ObjectNode *temp = existing_object->references->next;
+        newNode->object = referenced_object;
+        newNode->next = temp;
+        return true;
+    }
+}
 
+bool remove_reference(RootTable *table, Object *object, Object *reference){
+    if (table == NULL) {
+        fprintf(stderr, "Root table not initialized.");
+        return NULL;
+    }
+    uintptr_t address_of_object = (uintptr_t)object;
 
+    char key[20];
+    sprintf(key, "%llu", address_of_object);
+    Object *existing_object = get_from_root_table(table, key);
+    if (existing_object == NULL){
+        fprintf(stderr, "Object not found in root table.");
+        return false;
+    }
+    ObjectNode *currentNode = existing_object->references;
+    ObjectNode *previousNode = NULL;
+    if (currentNode == NULL){
+        return false;
+    }
+    while (currentNode != NULL){
+        if (currentNode->object == object){
+            if (previousNode == NULL){
+                existing_object->references = currentNode->next;
+            } else {
+                previousNode->next = currentNode->next;
+            }
+            free(currentNode);
+            return true;
+        }
+        previousNode = currentNode;
+        currentNode = currentNode->next;
+    }
+    return false;
+}
 
+ObjectNode *get_references(RootTable *table, Object *object) {
+    if (table == NULL) {
+        fprintf(stderr, "Root table not initialized.");
+        return NULL;
+    }
+    Bucket *currentBucket = table->bucket_heads[0];
+    while (currentBucket != NULL){
+       if (currentBucket->object == object){
+           return currentBucket->object->references;
+       }
+       currentBucket = currentBucket->next;
+    }
+    return NULL;
+}
 
+int get_reference_count(RootTable *table, Object *object){
+    if (table == NULL) {
+        fprintf(stderr, "Root table not initialized.");
+        return false;
+    }
+    uintptr_t address_of_object = (uintptr_t)object;
 
+    char key[20];
+    sprintf(key, "%llu", address_of_object);
+    Object *existing_object = get_from_root_table(table, key);
+    if (existing_object == NULL){
+        fprintf(stderr, "Object not found in root table.");
+        return false;
+    }
+    int count = 0;
+    ObjectNode *currentNode = existing_object->references;
+    while (currentNode != NULL){
+        count++;
+        currentNode = currentNode->next;
+    }
+    return count;
+}
+
+bool remove_object(RootTable *table, Object *object){
+    if (table == NULL) {
+        fprintf(stderr, "Root table not initialized.");
+        return false;
+    }
+    uintptr_t address_of_object = (uintptr_t)object;
+
+    char key[20];
+    sprintf(key, "%llu", address_of_object);
+    Object *existing_object = get_from_root_table(table, key);
+    if (existing_object == NULL){
+        fprintf(stderr, "Object not found in root table.");
+        return false;
+    }
+    ObjectNode *currentNode = existing_object->references;
+    while (currentNode != NULL){
+        ObjectNode *tempNode = currentNode->next;
+        free(currentNode);
+        currentNode = tempNode;
+    }
+    existing_object->references = NULL;
+    return true;
+}
+
+int get_object_count(RootTable *table, Object *object){
+    if (table == NULL) {
+        fprintf(stderr, "Root table not initialized.");
+        return false;
+    }
+    uintptr_t address_of_object = (uintptr_t)object;
+
+    char key[20];
+    sprintf(key, "%llu", address_of_object);
+    Object *existing_object = get_from_root_table(table, key);
+    if (existing_object == NULL){
+        fprintf(stderr, "Object not found in root table.");
+        return false;
+    }
+    //Iterate through bucket heads and for each head, iterate through all the nodes
+    int count = 0;
+    // Iterate through all bucket heads
+    for (size_t i = 0; i < table->bucket_count; i++) {
+        Bucket *currentBucket = table->bucket_heads[i];
+
+        // Iterate through all nodes in the current bucket head
+        while (currentBucket != NULL) {
+            Object *currentObject = currentBucket->object;
+
+            // Check if the current object is equal to the input object
+            if (currentObject == object) {
+                count++;
+            }
+            // Iterate through all referenced objects and count any references to the input object
+            ObjectNode *reference = currentObject->references;
+            while (reference != NULL) {
+                if (reference->object == object) {
+                    count++;
+                }
+                reference = reference->next;
+            }
+            currentBucket = currentBucket->next;
+        }
+    }
+    return count;
+}

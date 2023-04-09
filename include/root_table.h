@@ -17,7 +17,7 @@
  * @brief A structure representing a bucket in a hash table.
  */
 typedef struct Bucket Bucket;
-
+typedef struct Object Object;
 /**
  * @brief A structure representing a hash table for holding the root set of objects in GeeCe's mark-and-sweep garbage collector.
  */
@@ -35,6 +35,10 @@ struct Bucket {
     Bucket *next; /**< A pointer to the next bucket in the hash table's linked list. */
 };
 
+typedef struct ObjectNode{
+    Object *object;
+    struct ObjectNode *next;
+}ObjectNode;
 /**
  * @brief Computes a hash value for an object.
  *
@@ -109,6 +113,62 @@ bool destroy_root_table(RootTable *table);
  * @param table The RootTable to rehash.
  */
 bool rehash_root_table(RootTable *table);
+
+/**
+ * @brief Adds a reference to a referenced object from an object in the RootTable.
+ *
+ * @param table The RootTable containing the objects.
+ * @param object The object adding the reference.
+ * @param referenced_object The object being referenced.
+ * @return True if the reference was successfully added, false otherwise.
+ */
+bool add_referece(RootTable *table, Object *object, Object *referenced_object);
+
+/**
+ * @brief Removes a reference to a referenced object from an object in the RootTable.
+ *
+ * @param table The RootTable containing the objects.
+ * @param object The object removing the reference.
+ * @param reference The object being referenced.
+ * @return True if the reference was successfully removed, false otherwise.
+ */
+bool remove_reference(RootTable *table, Object *object, Object *reference);
+
+/**
+ * @brief Returns a pointer to the list of objects referenced by the given object in the RootTable.
+ *
+ * @param table The RootTable containing the objects.
+ * @param object The object whose referenced objects are to be returned.
+ * @return A pointer to the list of objects referenced by the given object, or NULL if the object was not found.
+ */
+ObjectNode *get_references(RootTable *table, Object *object);
+
+/**
+ * @brief Returns the number of references to a given object in the RootTable.
+ *
+ * @param table The RootTable containing the objects.
+ * @param object The object whose reference count is to be returned.
+ * @return The number of references to the given object, or 0 if the object was not found.
+ */
+int get_reference_count(RootTable *table, Object *object);
+
+/**
+ * @brief Removes an object from the RootTable, including all references to the object.
+ *
+ * @param table The RootTable containing the object.
+ * @param object The object to be removed.
+ * @return True if the object was successfully removed, false otherwise.
+ */
+bool remove_object(RootTable *table, Object *object);
+
+/**
+ * @brief Returns the number of objects in the RootTable that reference the given object.
+ *
+ * @param table The RootTable containing the objects.
+ * @param object The object whose count of references is to be returned.
+ * @return The number of objects in the RootTable that reference the given object, or 0 if the object was not found.
+ */
+int get_object_count(RootTable *table, Object *object);
 
 #endif // GEECE_ROOT_TABLE_H
 
